@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBT Ujian Online Siswa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; user-select: none; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        
+        /* Styling Opsi Jawaban */
+        .btn-opsi { 
+            text-align: left; position: relative; padding: 12px 15px 12px 50px; 
+            border: 1px solid #dee2e6; background: white; width: 100%; margin-bottom: 10px; 
+            border-radius: 8px; transition: all 0.2s;
+        }
+        .btn-opsi:hover { background-color: #f8f9fa; border-color: #0d6efd; }
+        .btn-opsi.selected { background-color: #e7f1ff; border-color: #0d6efd; color: #0d6efd; font-weight: bold; }
+        .btn-opsi .badge-opsi {
+            position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+            width: 25px; height: 25px; border-radius: 50%; background: #e9ecef;
+            display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;
+        }
+        .btn-opsi.selected .badge-opsi { background: #0d6efd; color: white; }
+
+        /* Navigasi Nomor Soal */
+        .nav-soal { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-height: 300px; overflow-y: auto; }
+        .btn-nomor { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border-radius: 8px; }
+        
+        .hidden { display: none !important; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        
+        /* Mencegah Copy Paste */
+        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+    </style>
+</head>
+<body>
+
+    <div id="loading" class="loading-overlay hidden">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h5 class="mt-3 text-muted" id="loadingText">Memuat...</h5>
+    </div>
+
+    <div id="view-login" class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card p-4">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
+                        <h4>Login Ujian CBT</h4>
+                        <p class="text-muted">Masukkan kredensial Anda</p>
+                    </div>
+                    <form onsubmit="handleLogin(event)">
+                        <div class="mb-3">
+                            <label>Username</label>
+                            <input type="text" id="username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Password</label>
+                            <input type="password" id="password" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2">Masuk</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-dashboard" class="container py-4 hidden">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="mb-0">Halo, <span id="namaUser" class="text-primary fw-bold"></span></h4>
+				<small class="text-muted"><i class="fas fa-users"></i> Kelas: <span id="kelasUser">-</span></small>
+                <small class="text-muted">Selamat datang di dashboard ujian.</small>
+            </div>
+            <button onclick="logout()" class="btn btn-outline-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Keluar</button>
+        </div>
+
+        <div class="row" id="listMapel">
+            <div class="col-12 text-center py-5"><span class="spinner-border spinner-border-sm"></span> Memuat Data...</div>
+        </div>
+		
+    </div>
+
+    <div id="view-ujian" class="container-fluid py-3 hidden" style="height: 100vh; overflow: hidden;">
+        <div class="row h-100">
+            <div class="col-md-9 d-flex flex-column h-100">
+                <div class="card p-3 mb-3 d-flex flex-row justify-content-between align-items-center bg-white">
+                    <h5 class="mb-0 fw-bold">Soal No. <span id="noSoal">1</span></h5>
+                    <div class="badge bg-danger fs-6 px-3 py-2">
+                        <i class="fas fa-clock me-1"></i> <span id="timer">00:00:00</span>
+                    </div>
+                </div>
+
+                <div class="card p-4 flex-grow-1 overflow-auto mb-3">
+                    <p id="teksSoal" class="fs-5 mb-4" style="line-height: 1.6;">...</p>
+                    
+                    <div id="areaOpsi">
+                        </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <button onclick="prevSoal()" class="btn btn-secondary px-4"><i class="fas fa-chevron-left"></i> Sebelumnya</button>
+                    <button onclick="raguRagu()" class="btn btn-warning text-white px-4">Ragu-ragu</button>
+                    <button onclick="nextSoal()" class="btn btn-primary px-4" id="btnNext">Selanjutnya <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+
+            <div class="col-md-3 h-100">
+                <div class="card h-100 p-3">
+                    <h6 class="mb-3 fw-bold border-bottom pb-2">Navigasi Soal</h6>
+                    <div id="navigasiSoal" class="nav-soal flex-grow-1">
+                        </div>
+                    <button onclick="selesaiUjian()" class="btn btn-success w-100 mt-3 py-2 fw-bold">
+                        <i class="fas fa-check-circle"></i> Selesai Ujian
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalAturan" data-bs-backdrop="static" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-info-circle"></i> Tata Tertib Ujian</h5>
+                </div>
+                <div class="modal-body">
+                    <ul class="mb-0">
+                        <li>Berdoa sebelum memulai.</li>
+                        <li>Waktu berjalan mundur otomatis.</li>
+                        <li>Dilarang membuka tab lain (Layar Penuh).</li>
+                        <li>Klik "Selesai" jika sudah yakin.</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" onclick="mulaiUjian()" id="btnMulaiUjian" class="btn btn-primary">Saya Mengerti & Mulai</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // --- KONFIGURASI URL APPS SCRIPT ---
+        // GANTI URL DI BAWAH INI DENGAN DEPLOYMENT URL ANDA YANG TERBARU (EXEC)
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzySVb1ePaOO10O9-ivWMlxYqetwxVtb_prLOgVJLyJDHR5FzVMqnXkJugmEqkbYPM/exec'; 
+
+        // State Aplikasi
+        let state = {
+            user: null,
+            mapelID: null,
+            durasi: 0,
+            soal: [],
+            jawaban: {}, 
+            ragu: {},
+            index: 0,
+            timer: null,
+            endTime: null,
+            // TAMBAHAN BARU:
+            violationCount: 0, 
+            isExamRunning: false 
+        };
+		
+		// --- SISTEM KEAMANAN (ANTI-CHEAT) ---
+        function initSecurity() {
+            state.violationCount = 0;
+            state.isExamRunning = true;
+
+            // Deteksi Ganti Tab / Minimize
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            
+            // Deteksi Klik di Luar Browser / Split Screen (Fokus Hilang)
+            window.addEventListener('blur', handleBlur);
+        }
+
+        function stopSecurity() {
+            state.isExamRunning = false;
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('blur', handleBlur);
+        }
+
+        function handleVisibilityChange() {
+            if (document.hidden && state.isExamRunning) {
+                catatPelanggaran("Anda meninggalkan halaman ujian!");
+            }
+        }
+
+        function handleBlur() {
+            if (state.isExamRunning) {
+                catatPelanggaran("Fokus layar hilang (Split screen/Klik aplikasi lain)!");
+            }
+        }
+
+        function catatPelanggaran(pesan) {
+            // Cegah double firing (alert bertumpuk)
+            if(Swal.isVisible()) return; 
+
+            state.violationCount++;
+            const sisa = 3 - state.violationCount;
+
+            if (state.violationCount >= 3) {
+                stopSecurity(); // Matikan deteksi agar tidak loop
+                clearInterval(state.timer);
+                
+                Swal.fire({
+                    title: 'DISKUALIFIKASI!',
+                    html: `Anda telah melanggar aturan 3 kali.<br><small class="text-danger">${pesan}</small><br><b>Jawaban dikunci dan dikirim otomatis.</b>`,
+                    icon: 'error',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    confirmButtonText: 'Mengerti',
+                    confirmButtonColor: '#d33'
+                }).then(() => {
+                    submitUjian(true); // True = Force Submit
+                });
+            } else {
+                Swal.fire({
+                    title: 'PERINGATAN KERAS!',
+                    html: `${pesan}<br>Jangan berpindah layar atau membagi layar!<br><b>Sisa Kesempatan: ${sisa} kali</b>`,
+                    icon: 'warning',
+                    timer: 3000,
+                    showConfirmButton: false,
+                    allowOutsideClick: false
+                });
+            }
+        }
+
+        // --- FUNGSI API ---
+        async function apiRequest(action, payload = {}) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action, payload }) // mode: 'no-cors' DIBUANG agar bisa baca respon
+                });
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error("API Error:", error);
+                return { status: 'error', message: 'Gagal terhubung ke server. Cek koneksi internet.' };
+            }
+        }
+
+        function toggleLoading(show, text = 'Memuat...') {
+            const el = document.getElementById('loading');
+            document.getElementById('loadingText').innerText = text;
+            if(show) el.classList.remove('hidden');
+            else el.classList.add('hidden');
+        }
+
+        function switchView(viewId) {
+            ['view-login', 'view-dashboard', 'view-ujian'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        // --- AUTH ---
+        async function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+
+            toggleLoading(true, 'Sedang Login...');
+            const res = await apiRequest('login', { username: u, password: p });
+            toggleLoading(false);
+
+            if (res.status === 'success') {
+                state.user = res.data;
+                document.getElementById('namaUser').innerText = res.data.nama;
+				document.getElementById('kelasUser').innerText = res.data.kelas || '-';
+                switchView('view-dashboard');
+                loadMapel();
+            } else {
+                Swal.fire('Gagal', res.message, 'error');
+            }
+        }
+
+        function logout() {
+			// 1. Reset Data
+			state.user = null;
+			state.soal = [];
+			state.jawaban = {};
+			document.getElementById('username').value = '';
+			document.getElementById('password').value = '';
+
+			// 2. Pindah Tampilan (DOM Manipulation - INSTAN)
+			document.getElementById('view-ujian').classList.add('hidden');
+			document.getElementById('view-dashboard').classList.add('hidden');
+			document.getElementById('view-login').classList.remove('hidden');
+			
+			// Jangan ada location.reload() di sini
+		}
+
+        // --- DASHBOARD ---
+        async function loadMapel() {
+            const listEl = document.getElementById('listMapel');
+            listEl.innerHTML = '<div class="col-12 text-center"><span class="spinner-border text-primary"></span></div>';
+            
+            const res = await apiRequest('getMapelSiswa');
+            listEl.innerHTML = '';
+
+            if (res.status === 'success') {
+                if(res.data.length === 0) {
+                    listEl.innerHTML = '<div class="alert alert-info">Belum ada ujian yang aktif saat ini.</div>';
+                    return;
+                }
+                res.data.forEach(m => {
+                    const card = `
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 p-3">
+                                <h5 class="fw-bold">${m.nama}</h5>
+                                <p class="text-muted small mb-2">${m.deskripsi}</p>
+                                <div class="d-flex justify-content-between align-items-center mt-auto">
+                                    <span class="badge bg-info text-dark"><i class="fas fa-clock"></i> ${m.durasi} Menit</span>
+                                    <button onclick="showAturan('${m.id}', ${m.durasi})" class="btn btn-primary btn-sm rounded-pill px-3">
+                                        Mulai <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    listEl.innerHTML += card;
+                });
+            } else {
+                listEl.innerHTML = '<div class="text-danger text-center">Gagal memuat data ujian.</div>';
+            }
+        }
+
+        // --- LOGIC UJIAN (PERBAIKAN PENTING DI SINI) ---
+        
+        function showAturan(id, durasi) {
+            state.mapelID = id;  // Simpan ID Mapel
+            state.durasi = durasi; // Simpan Durasi
+            
+            // Debugging
+            console.log("Mapel Dipilih:", id, "Durasi:", durasi);
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalAturan'));
+            modal.show();
+        }
+
+        async function mulaiUjian() {
+            // 1. Ambil Tombol & Set Loading state agar tidak di-klik 2x
+            const btn = document.getElementById('btnMulaiUjian');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sedang Menyiapkan Soal...';
+            btn.disabled = true;
+
+            try {
+                console.log("Mengambil soal untuk ID:", state.mapelID); // Debug
+                
+                // 2. Request Data Soal DULUAN
+                const res = await apiRequest('getSoal', { pelajaran_id: state.mapelID });
+
+                // 3. Cek Respon
+                if (res.status === 'success' && res.data && res.data.length > 0) {
+                    
+                    // Tutup Modal
+                    const modalEl = document.getElementById('modalAturan');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    modal.hide();
+
+                    // Setup State Ujian
+                    state.soal = acakSoal(res.data);
+                    state.index = 0;
+                    state.jawaban = {};
+                    state.ragu = {};
+                    
+                    // Coba Fullscreen (Opsional, browser mungkin memblokir ini)
+                    try {
+                        if (document.documentElement.requestFullscreen) {
+                            await document.documentElement.requestFullscreen();
+                        }
+                    } catch(e) { console.log("Fullscreen blocked", e); }
+
+                    // Setup Timer
+                    state.endTime = new Date().getTime() + (parseInt(state.durasi) * 60000);
+                    state.timer = setInterval(updateTimer, 1000);
+
+                    // Tampilkan UI Ujian
+                    renderNavigasi();
+                    renderSoal();
+                    switchView('view-ujian');
+					
+					// ---> TAMBAHKAN INI: <---
+                    initSecurity();
+
+                } else {
+                    // JIKA ERROR / SOAL KOSONG
+                    console.error("Gagal getSoal:", res);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Soal Tidak Ditemukan',
+                        text: res.message || 'Data soal kosong. Hubungi admin.'
+                    });
+                }
+
+            } catch (err) {
+                console.error("Error Network:", err);
+                Swal.fire('Koneksi Error', 'Gagal menghubungi server.', 'error');
+            } finally {
+                // Kembalikan tombol seperti semula
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // --- RENDER & NAVIGASI SOAL ---
+        function renderSoal() {
+            const soal = state.soal[state.index];
+            document.getElementById('noSoal').innerText = state.index + 1;
+            
+            // Render Pertanyaan (Support HTML/Gambar)
+            document.getElementById('teksSoal').innerHTML = soal.pertanyaan;
+
+            // Render Opsi
+            const areaOpsi = document.getElementById('areaOpsi');
+            areaOpsi.innerHTML = '';
+            
+            // Karena struktur DB: opsi_a, opsi_b... Kita buat array manual
+            const opsiArr = [
+                { key: 'A', val: soal.opsi_a },
+                { key: 'B', val: soal.opsi_b },
+                { key: 'C', val: soal.opsi_c },
+                { key: 'D', val: soal.opsi_d }
+            ];
+
+            const jawabanUser = state.jawaban[state.index]; // Jawaban tersimpan utk soal ini
+
+            opsiArr.forEach(o => {
+                const isSelected = jawabanUser === o.key ? 'selected' : '';
+                const html = `
+                    <button class="btn btn-opsi ${isSelected}" onclick="pilihJawaban('${o.key}')">
+                        <div class="badge-opsi">${o.key}</div>
+                        ${o.val}
+                    </button>
+                `;
+                areaOpsi.innerHTML += html;
+            });
+
+            // Update Navigasi (Warna tombol)
+            renderNavigasi();
+            
+            // Handle Tombol Next/Done
+            const btnNext = document.getElementById('btnNext');
+            if (state.index === state.soal.length - 1) {
+                btnNext.classList.add('hidden');
+            } else {
+                btnNext.classList.remove('hidden');
+                btnNext.innerHTML = 'Selanjutnya <i class="fas fa-chevron-right"></i>';
+            }
+        }
+
+        function pilihJawaban(key) {
+            state.jawaban[state.index] = key;
+            renderSoal(); // Re-render untuk update styling 'selected'
+        }
+
+        function renderNavigasi() {
+            const container = document.getElementById('navigasiSoal');
+            container.innerHTML = '';
+            state.soal.forEach((_, idx) => {
+                let colorClass = 'btn-outline-secondary';
+                if (state.index === idx) colorClass = 'btn-primary'; // Posisi sekarang
+                else if (state.jawaban[idx]) colorClass = 'btn-success text-white'; // Sudah dijawab
+                
+                if (state.ragu[idx]) colorClass = 'btn-warning text-white'; // Ragu-ragu
+
+                const btn = document.createElement('div');
+                btn.className = `btn btn-nomor ${colorClass}`;
+                btn.innerText = idx + 1;
+                btn.onclick = () => { state.index = idx; renderSoal(); };
+                container.appendChild(btn);
+            });
+        }
+
+        function nextSoal() {
+            if (state.index < state.soal.length - 1) {
+                state.index++;
+                renderSoal();
+            }
+        }
+
+        function prevSoal() {
+            if (state.index > 0) {
+                state.index--;
+                renderSoal();
+            }
+        }
+
+        function raguRagu() {
+            state.ragu[state.index] = !state.ragu[state.index];
+            renderNavigasi();
+        }
+
+        function updateTimer() {
+            const now = new Date().getTime();
+            const distance = state.endTime - now;
+
+            if (distance < 0) {
+                clearInterval(state.timer);
+                Swal.fire('Waktu Habis', 'Jawaban akan disubmit otomatis.', 'warning')
+                .then(() => submitUjian());
+                return;
+            }
+
+            const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            document.getElementById('timer').innerText = 
+                `${h<10?'0'+h:h}:${m<10?'0'+m:m}:${s<10?'0'+s:s}`;
+        }
+
+        function selesaiUjian() {
+            const terisi = Object.keys(state.jawaban).length;
+            const total = state.soal.length;
+            
+            Swal.fire({
+                title: 'Kirim Jawaban?',
+                text: `Anda baru menjawab ${terisi} dari ${total} soal.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Kirim',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitUjian();
+                }
+            });
+        }
+
+        // Parameter 'force' default-nya false (submit normal). 
+        // Jika true (karena pelanggaran), pesan alert akan berbeda.
+        async function submitUjian(force = false) {
+            
+            // 1. LANGKAH AWAL: Matikan semua sistem yang berjalan
+            stopSecurity();        // Matikan deteksi anti-cheat
+            clearInterval(state.timer); // Matikan waktu mundur
+            
+            // 2. UI: Tampilkan Loading agar user tahu sistem bekerja
+            toggleLoading(true, 'Sedang Menghitung Nilai...');
+            
+            // 3. Keluar dari Fullscreen (agar tampilan kembali normal)
+            if (document.fullscreenElement) {
+                try { await document.exitFullscreen(); } catch(e){}
+            }
+
+            try {
+                // 4. PERSIAPAN DATA: Mapping Jawaban
+                // Kita ubah format array state.jawaban menjadi Object { ID_SOAL: JAWABAN }
+                let jawabanPayload = {};
+                state.soal.forEach((s, idx) => {
+                    const jwb = state.jawaban[idx]; 
+                    // Hanya kirim yang dijawab saja
+                    if(jwb) {
+                        jawabanPayload[s.id_soal] = jwb; 
+                    }
+                });
+
+                // 5. KIRIM KE SERVER (Google Sheet)
+                const res = await apiRequest('submitJawaban', {
+                    username: state.user.username,
+                    nama: state.user.nama,
+                    pelajaran_id: state.mapelID,
+					kelas: state.user.kelas,
+                    jawaban_user: jawabanPayload
+                });
+
+                // Matikan loading segera setelah respon diterima
+                toggleLoading(false);
+
+                // 6. CEK HASIL
+                if (res.status === 'success') {
+                    
+                    // Tentukan Pesan: Apakah Normal atau Diskualifikasi?
+                    let judul = force ? 'Diskualifikasi!' : 'Ujian Selesai!';
+                    let ikon = force ? 'error' : 'success';
+                    let pesan = force 
+                        ? `Pelanggaran terdeteksi.<br>Nilai Anda: <b>${res.skor}</b>`
+                        : `Jawaban berhasil disimpan.<br>Nilai Akhir: <b>${res.skor}</b>`;
+
+                    // Tampilkan Alert Hasil
+                    await Swal.fire({
+                        title: judul,
+                        html: pesan,
+                        icon: ikon,
+                        timer: 4000, // Tampil selama 4 detik
+                        timerProgressBar: true,
+                        showConfirmButton: false, // Tombol disembunyikan agar otomatis
+                        allowOutsideClick: false,
+                        allowEscapeKey: false
+                    });
+                    
+                    // 7. FINAL: Pindah ke Login SECARA INSTAN
+                    // Jangan gunakan location.reload()!
+                    logout(); 
+                    
+                } else {
+                    // Jika Server Error (Misal sheet terkunci)
+                    Swal.fire('Gagal Menyimpan', res.message, 'error');
+                }
+
+            } catch (err) {
+                console.error("Submit Error:", err);
+                toggleLoading(false);
+                Swal.fire('Koneksi Terputus', 'Gagal menghubungi server. Cek internet Anda.', 'error');
+            }
+        }
+
+        // Fungsi Acak Soal (Fisher-Yates Shuffle)
+        function acakSoal(array) {
+            // Kita clone array dulu agar tidak merusak referensi asli jika diperlukan
+            let newArr = [...array]; 
+            let currentIndex = newArr.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [newArr[currentIndex], newArr[randomIndex]] = [newArr[randomIndex], newArr[currentIndex]];
+            }
+            return newArr;
+        }
+    </script>
+</body>
+</html>
