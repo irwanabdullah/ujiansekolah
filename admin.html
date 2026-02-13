@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>CBT Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card-dash { border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-radius: 10px; background: white; }
+        .hidden { display: none !important; }
+        .nav-link-custom { cursor: pointer; margin-right: 10px; }
+        .table-responsive { max-height: 500px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+    <nav id="navbarAdmin" class="navbar navbar-dark bg-dark mb-4 sticky-top" style="display:none;">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1"><i class="fas fa-user-shield"></i> CBT Admin</span>
+            <div>
+                <button onclick="switchView('view-admin')" class="btn btn-outline-light btn-sm me-2">
+                    <i class="fas fa-edit"></i> Soal & Mapel
+                </button>
+                <button onclick="loadHasilNilai()" class="btn btn-outline-light btn-sm me-2">
+                    <i class="fas fa-chart-bar"></i> Data Nilai
+                </button>
+                <button onclick="logout()" class="btn btn-danger btn-sm">
+                    <i class="fas fa-sign-out-alt"></i> Keluar
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <div id="view-login" class="row justify-content-center" style="margin-top: 100px;">
+            <div class="col-md-4">
+                <div class="card card-dash p-4">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-lock fa-3x text-secondary"></i>
+                        <h4 class="mt-2">Login Admin</h4>
+                    </div>
+                    <form id="formLogin">
+                        <div class="mb-3">
+                            <label>Username</label>
+                            <input type="text" id="username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Password</label>
+                            <input type="password" id="password" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Masuk</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-admin" class="hidden">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="fas fa-book"></i> Daftar Mata Pelajaran</h4>
+                <button onclick="refreshMapelTable()" class="btn btn-sm btn-outline-primary"><i class="fas fa-sync"></i> Refresh</button>
+            </div>
+
+            <div class="card card-dash p-3 mb-5">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mata Pelajaran</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableMapel">
+                            <tr><td colspan="3" class="text-center">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <h4 class="mb-3"><i class="fas fa-plus-circle"></i> Input Soal Baru</h4>
+            <div class="card card-dash p-4 mb-5">
+                <div id="formSoalContainer"></div> 
+            </div>
+        </div>
+
+        <div id="view-nilai" class="hidden">
+            <h4 class="mb-3"><i class="fas fa-poll"></i> Rekap Hasil Ujian</h4>
+            
+            <div class="card card-dash p-3 mb-3 bg-light">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="small fw-bold">Filter Mapel:</label>
+                        <select id="filterMapel" class="form-select" onchange="applyFilter()">
+                            <option value="ALL">Semua Mapel</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="small fw-bold">Filter Kelas:</label>
+                        <select id="filterKelas" class="form-select" onchange="applyFilter()">
+                            <option value="ALL">Semua Kelas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button onclick="loadHasilNilai()" class="btn btn-primary w-100">
+                            <i class="fas fa-sync"></i> Refresh Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-dash p-3">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover small">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Nama Siswa</th>
+                                <th>Kelas</th>
+                                <th>Mapel</th>
+                                <th>Skor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyNilai">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <template id="templateFormSoal">
+        <form onsubmit="simpanSoal(event)">
+            <div class="mb-3">
+                <label class="fw-bold">Pilih Mapel:</label>
+                <select id="pelajaran_id" class="form-select" required>
+                    <option value="" disabled selected>Pilih Mapel...</option>
+                </select>
+            </div>
+            
+            <label class="fw-bold">Pertanyaan:</label>
+            <div class="input-group mb-3">
+                <textarea id="q" class="form-control" placeholder="Tulis pertanyaan..." rows="2" required></textarea>
+                <button type="button" class="btn btn-outline-secondary" onclick="triggerUpload('q')" title="Upload Gambar"><i class="fas fa-image"></i></button>
+            </div>
+
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">A</span>
+                        <input id="a" class="form-control" placeholder="Opsi A" required>
+                        <button type="button" class="btn btn-outline-secondary" onclick="triggerUpload('a')"><i class="fas fa-image"></i></button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">B</span>
+                        <input id="b" class="form-control" placeholder="Opsi B" required>
+                        <button type="button" class="btn btn-outline-secondary" onclick="triggerUpload('b')"><i class="fas fa-image"></i></button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">C</span>
+                        <input id="c" class="form-control" placeholder="Opsi C" required>
+                        <button type="button" class="btn btn-outline-secondary" onclick="triggerUpload('c')"><i class="fas fa-image"></i></button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">D</span>
+                        <input id="d" class="form-control" placeholder="Opsi D" required>
+                        <button type="button" class="btn btn-outline-secondary" onclick="triggerUpload('d')"><i class="fas fa-image"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group mt-3">
+                <label class="input-group-text bg-warning">Kunci Jawaban</label>
+                <select id="kunci" class="form-select fw-bold" required>
+                    <option value="A">A</option><option value="B">B</option>
+                    <option value="C">C</option><option value="D">D</option>
+                </select>
+                <button type="submit" class="btn btn-success px-4 fw-bold"><i class="fas fa-save"></i> SIMPAN SOAL</button>
+            </div>
+        </form>
+        <input type="file" id="hiddenFileInput" style="display:none" accept="image/*" onchange="handleFileSelect(this)">
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        // --- KONFIGURASI URL ---
+        // GANTI DENGAN URL DEPLOYMENT GOOGLE APPS SCRIPT ANDA
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzySVb1ePaOO10O9-ivWMlxYqetwxVtb_prLOgVJLyJDHR5FzVMqnXkJugmEqkbYPM/exec'; 
+        
+        let currentUser = null;
+        let mapelList = [];
+        let allNilaiData = []; // Menyimpan data nilai mentah untuk filter
+        let activeUploadFieldId = null; 
+
+        // --- 1. NAVIGASI & LOGIN ---
+
+        document.getElementById('formLogin').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            Swal.showLoading();
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            
+            try {
+                const res = await fetchAPI({ action: 'login', payload: {username: u, password: p} });
+                Swal.close();
+                
+                if (res.status === 'success') {
+                    currentUser = res.data;
+                    
+                    if (currentUser.role === 'admin' || currentUser.role === 'guru') {
+                        // Login Sukses
+                        document.getElementById('navbarAdmin').style.display = 'block';
+                        document.getElementById('view-login').classList.add('hidden');
+                        
+                        // Render Form Awal
+                        renderFormTemplate();
+                        
+                        // Masuk ke Dashboard
+                        switchView('view-admin');
+                    } else {
+                        Swal.fire('Akses Ditolak', 'Siswa tidak bisa login di panel admin.', 'warning');
+                    }
+                } else {
+                    Swal.fire('Gagal', res.message, 'error');
+                }
+            } catch(e) { 
+                console.error(e);
+                Swal.fire('Error', 'Koneksi gagal.', 'error');
+            }
+        });
+
+        function switchView(viewId) {
+            // Sembunyikan semua view
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+            document.getElementById('view-nilai').classList.add('hidden');
+            
+            // Tampilkan view target
+            document.getElementById(viewId).classList.remove('hidden');
+
+            // Load data sesuai view
+            if(viewId === 'view-admin') refreshMapelTable();
+        }
+
+        function logout() { location.reload(); }
+
+        // --- 2. LOGIC DASHBOARD (SOAL & MAPEL) ---
+
+        function renderFormTemplate() {
+            const tpl = document.getElementById('templateFormSoal').content.cloneNode(true);
+            const container = document.getElementById('formSoalContainer');
+            container.innerHTML = '';
+            container.appendChild(tpl);
+        }
+
+        async function refreshMapelTable() {
+            const res = await fetchAPI({ action: 'getAdminData' });
+            if (res.status === 'success') {
+                mapelList = res.data;
+                const tbody = document.getElementById('tableMapel');
+                const select = document.getElementById('pelajaran_id');
+                
+                // Reset UI
+                tbody.innerHTML = '';
+                if(select) select.innerHTML = '<option value="" disabled selected>Pilih Mapel...</option>';
+
+                mapelList.forEach(m => {
+                    // Isi Dropdown di Form Soal
+                    if(select) select.innerHTML += `<option value="${m.id}">${m.nama}</option>`;
+
+                    // Isi Tabel
+                    const btnClass = m.status === 'Aktif' ? 'btn-success' : 'btn-secondary';
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>
+                                <b>${m.nama}</b> <span class="badge bg-secondary ms-1">${m.id}</span>
+                                <br><small class="text-muted">${m.deskripsi}</small>
+                            </td>
+                            <td>
+                                <span class="badge ${m.status === 'Aktif' ? 'bg-success' : 'bg-danger'}">${m.status}</span>
+                            </td>
+                            <td>
+                                <button onclick="toggleStatus('${m.id}', '${m.status}')" class="btn btn-sm ${btnClass}">
+                                    ${m.status === 'Aktif' ? 'Nonaktifkan' : 'Aktifkan'}
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        async function toggleStatus(id, currentStatus) {
+            const newStatus = currentStatus === 'Aktif' ? 'Nonaktif' : 'Aktif';
+            Swal.showLoading();
+            await fetchAPI({ action: 'updateStatusMapel', payload: { id, status: newStatus } });
+            await refreshMapelTable();
+            Swal.close();
+        }
+
+        async function simpanSoal(e) {
+            e.preventDefault();
+            Swal.showLoading();
+            
+            const payload = {
+                pelajaran_id: document.getElementById('pelajaran_id').value,
+                pertanyaan: document.getElementById('q').value,
+                opsi_a: document.getElementById('a').value,
+                opsi_b: document.getElementById('b').value,
+                opsi_c: document.getElementById('c').value,
+                opsi_d: document.getElementById('d').value,
+                kunci: document.getElementById('kunci').value
+            };
+            
+            const res = await fetchAPI({ action: 'tambahSoal', payload });
+            Swal.close();
+            
+            if(res.status === 'success') {
+                Swal.fire({title:'Sukses', text:'Soal tersimpan', icon:'success', timer: 1500});
+                // Reset form (kecuali mapel biar enak input berturut-turut)
+                document.getElementById('q').value = '';
+                document.getElementById('a').value = '';
+                document.getElementById('b').value = '';
+                document.getElementById('c').value = '';
+                document.getElementById('d').value = '';
+            } else {
+                Swal.fire('Gagal', res.message, 'error');
+            }
+        }
+
+        // --- 3. LOGIC DATA NILAI (FILTER & TABEL) ---
+
+        async function loadHasilNilai() {
+            switchView('view-nilai'); // Pindah Tab
+            
+            const tbody = document.getElementById('tbodyNilai');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-3"><div class="spinner-border text-primary"></div><br>Mengambil data...</td></tr>';
+            
+            const res = await fetchAPI({ action: 'getHasilUjian' });
+            
+            if (res.status === 'success') {
+                allNilaiData = res.data; // Simpan ke variabel global
+                populateFilters();       // Isi dropdown filter otomatis
+                applyFilter();           // Render tabel
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Gagal memuat data.</td></tr>';
+            }
+        }
+
+        function populateFilters() {
+            const mapelSet = new Set();
+            const kelasSet = new Set();
+
+            // Loop semua data untuk cari Mapel dan Kelas unik
+            allNilaiData.forEach(item => {
+                if(item.mapel) mapelSet.add(item.mapel);
+                if(item.kelas) kelasSet.add(item.kelas);
+            });
+
+            // Isi Dropdown Mapel
+            const selMapel = document.getElementById('filterMapel');
+            selMapel.innerHTML = '<option value="ALL">Semua Mapel</option>';
+            mapelSet.forEach(m => selMapel.innerHTML += `<option value="${m}">${m}</option>`);
+
+            // Isi Dropdown Kelas
+            const selKelas = document.getElementById('filterKelas');
+            selKelas.innerHTML = '<option value="ALL">Semua Kelas</option>';
+            kelasSet.forEach(k => selKelas.innerHTML += `<option value="${k}">${k}</option>`);
+        }
+
+        function applyFilter() {
+            const fMapel = document.getElementById('filterMapel').value;
+            const fKelas = document.getElementById('filterKelas').value;
+
+            // Filter Array JS
+            const filtered = allNilaiData.filter(item => {
+                const matchMapel = (fMapel === 'ALL') || (item.mapel === fMapel);
+                const matchKelas = (fKelas === 'ALL') || (item.kelas === fKelas);
+                return matchMapel && matchKelas;
+            });
+
+            const tbody = document.getElementById('tbodyNilai');
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted fst-italic py-4">Tidak ada data ditemukan untuk filter ini.</td></tr>';
+                return;
+            }
+
+            // Render Baris
+            filtered.forEach(item => {
+                // Format Tanggal
+                let waktuFix = item.waktu;
+                try {
+                    const d = new Date(item.waktu);
+                    // Format: 14/02/2026 10:30
+                    waktuFix = d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+                } catch(e){}
+
+                // Warna Skor
+                const badgeColor = item.skor >= 75 ? 'bg-success' : (item.skor >= 50 ? 'bg-warning text-dark' : 'bg-danger');
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${waktuFix}</td>
+                        <td class="fw-bold">${item.nama}</td>
+                        <td><span class="badge bg-info text-dark">${item.kelas || '-'}</span></td>
+                        <td>${item.mapel}</td>
+                        <td class="text-center"><span class="badge ${badgeColor} fs-6" style="min-width:50px">${item.skor}</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        // --- 4. LOGIC UPLOAD GAMBAR ---
+
+        function triggerUpload(fieldId) {
+            activeUploadFieldId = fieldId;
+            document.getElementById('hiddenFileInput').click();
+        }
+
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (file.size > 2 * 1024 * 1024) {
+                    Swal.fire('Warning', 'Ukuran gambar maksimal 2MB', 'warning');
+                    input.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                Swal.fire({title: 'Mengupload...', didOpen: () => Swal.showLoading()});
+                
+                reader.onload = async function(e) {
+                    const base64 = e.target.result.split(',')[1];
+                    const payload = { data: base64, mimeType: file.type, name: file.name };
+
+                    const res = await fetchAPI({ action: 'uploadFile', payload: payload });
+                    Swal.close();
+                    
+                    if (res.status === 'success') {
+                        const field = document.getElementById(activeUploadFieldId);
+                        // Masukkan kode HTML gambar ke Textarea/Input
+                        const imgTag = `<br><img src="${res.url}" style="max-width:200px; height:auto; margin:5px; border-radius:5px;"><br>`;
+                        field.value += imgTag;
+                    } else {
+                        Swal.fire('Error', 'Gagal upload: ' + res.message, 'error');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+            input.value = '';
+        }
+
+        // --- HELPER FETCH ---
+        async function fetchAPI(body) {
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+            return await response.json();
+        }
+
+    </script>
+</body>
+</html>
