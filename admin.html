@@ -21,8 +21,8 @@
         <div class="container">
             <span class="navbar-brand mb-0 h1"><i class="fas fa-user-shield"></i> CBT Admin</span>
             <div>
-                <button onclick="switchView('view-admin')" class="btn btn-outline-light btn-sm me-2">Soal & Mapel</button>
-                <button onclick="loadHasilNilai()" class="btn btn-outline-light btn-sm me-2">Data Nilai</button>
+                <button id="btn-nav-admin" onclick="switchView('view-admin')" class="btn btn-outline-light btn-sm me-2">Soal & Mapel</button>
+                <button id="btn-nav-nilai" onclick="loadHasilNilai()" class="btn btn-outline-light btn-sm me-2">Data Nilai</button>
                 <button onclick="logout()" class="btn btn-danger btn-sm">Keluar</button>
             </div>
         </div>
@@ -35,7 +35,7 @@
                 <div class="card card-dash p-4">
                     <div class="text-center mb-3">
                         <i class="fas fa-lock fa-3x text-secondary"></i>
-                        <h4 class="mt-2">Login Admin</h4>
+                        <h4 class="mt-2">Login Admin / Guru</h4>
                     </div>
                     <form id="formLogin">
                         <div class="mb-3">
@@ -53,19 +53,21 @@
         </div>
 
         <div id="view-admin" class="hidden">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4><i class="fas fa-book"></i> Daftar Mata Pelajaran</h4>
-                <button onclick="refreshMapelTable()" class="btn btn-sm btn-outline-primary">Refresh</button>
-            </div>
+            <div id="section-mapel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4><i class="fas fa-book"></i> Daftar Mata Pelajaran</h4>
+                    <button onclick="refreshMapelTable()" class="btn btn-sm btn-outline-primary">Refresh</button>
+                </div>
 
-            <div class="card card-dash p-3 mb-5">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr><th>Mata Pelajaran</th><th>Status</th><th>Aksi</th></tr>
-                        </thead>
-                        <tbody id="tableMapel"><tr><td colspan="3" class="text-center">Memuat...</td></tr></tbody>
-                    </table>
+                <div class="card card-dash p-3 mb-5">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr><th>Mata Pelajaran</th><th>Status</th><th>Aksi</th></tr>
+                            </thead>
+                            <tbody id="tableMapel"><tr><td colspan="3" class="text-center">Memuat...</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             
@@ -162,7 +164,7 @@
     
     <script>
         // --- GANTI URL WEB APP ANDA DI SINI ---
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzZ2xDc66XiCaMNJifFPY1y7BN7V7G4cYq_L4BjGI55HYSf6DNsp15iFtsyxBzTOo0/exec'; 
+        const API_URL = 'https://script.google.com/macros/s/AKfycby0B4IP3pRVGDAWnCmXwe7Yzu5zjVK0P48D_2Fd7maDBlzCghbRpLY_UGczi2j6GMGE/exec'; 
         
         let currentUser = null;
         let mapelList = [];
@@ -184,6 +186,20 @@
                     document.getElementById('navbarAdmin').style.display = 'block';
                     document.getElementById('view-login').classList.add('hidden');
                     renderFormTemplate();
+                    
+                    // --- MODIFIKASI TAMPILAN BERDASARKAN ROLE ---
+                    if(currentUser.role === 'guru') {
+                        // Jika guru: Sembunyikan tombol nilai dan area daftar mapel
+                        document.getElementById('btn-nav-nilai').classList.add('hidden');
+                        document.getElementById('section-mapel').classList.add('hidden');
+                        document.getElementById('btn-nav-admin').innerText = 'Input Soal'; // Ganti teks nav
+                    } else {
+                        // Jika admin: Tampilkan semua
+                        document.getElementById('btn-nav-nilai').classList.remove('hidden');
+                        document.getElementById('section-mapel').classList.remove('hidden');
+                        document.getElementById('btn-nav-admin').innerText = 'Soal & Mapel';
+                    }
+                    
                     switchView('view-admin');
                 } else {
                     Swal.fire('Gagal', 'Akses ditolak atau password salah.', 'error');
