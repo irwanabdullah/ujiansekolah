@@ -2,425 +2,341 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ujian CBT Online</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>Admin CBT Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; }
-        body { background-color: var(--bg); font-family: 'Inter', sans-serif; user-select: none; padding-bottom: 90px; }
+        :root { --primary: #4f46e5; --bg: #f3f4f6; --text: #1f2937; }
+        body { background-color: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text); }
+        .login-card { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(79, 70, 229, 0.1); background: white; padding: 2rem; }
+        .sidebar { background: #1e1b4b; min-height: 100vh; color: white; }
+        .nav-link { color: #c7d2fe; padding: 12px 20px; border-radius: 10px; margin-bottom: 5px; transition: 0.3s; cursor: pointer; }
+        .nav-link:hover, .nav-link.active { background: #4338ca; color: white; font-weight: 600; }
+        .card-dash { border: none; border-radius: 16px; background: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .hidden { display: none !important; }
-        
-        /* Login UI */
-        .login-wrapper { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 20px; }
-        .card-custom { border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: white; }
-        
-        /* Soal UI */
-        .sticky-timer { position: sticky; top: 0; z-index: 99; background: white; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .opsi-btn { width: 100%; text-align: left; padding: 16px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 12px; background: white; transition: 0.2s; font-size: 1rem; position: relative; }
-        .opsi-btn:active { transform: scale(0.98); }
-        .opsi-btn.active { border-color: var(--primary); background-color: #eff6ff; color: var(--primary); font-weight: 600; }
-        .opsi-btn:hover { border-color: #cbd5e1; }
-        .opsi-btn img { max-width: 100px; display: block; margin-top: 8px; border-radius: 4px; }
-        
-        /* Mobile Nav */
-        .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 12px; box-shadow: 0 -4px 20px rgba(0,0,0,0.05); display: flex; gap: 10px; z-index: 100; }
-        .btn-nav-number { width: 45px; height: 45px; font-weight: bold; border-radius: 8px; }
-        .btn-nav-number.filled { background: var(--primary); color: white; border: none; }
+        .token-badge { font-family: monospace; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-    <div id="view-login" class="login-wrapper">
-        <div class="card card-custom p-4 mx-auto w-100" style="max-width: 400px;">
-            <div class="text-center mb-4">
-                <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
-                <h4 class="fw-bold">Login Siswa</h4>
-                <p class="text-muted small">Masukkan akun ujian Anda</p>
-            </div>
-            <form id="formLogin">
-                <div class="form-floating mb-3">
-                    <input type="text" class="form-control" id="username" placeholder="Username" required>
-                    <label>Username</label>
+    <div id="view-login" class="container d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+        <div class="col-md-4">
+            <div class="login-card text-center">
+                <div class="mb-4">
+                    <span class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px;">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </span>
                 </div>
-                <div class="input-group mb-4">
-                    <div class="form-floating flex-grow-1">
-                        <input type="password" class="form-control" id="password" placeholder="Password" required>
-                        <label>Password</label>
+                <h4 class="fw-bold mb-1">Admin & Guru</h4>
+                <p class="text-muted mb-4 small">Masuk untuk mengelola ujian</p>
+                <form id="formLogin">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="username" placeholder="Username" required>
+                        <label>Username</label>
                     </div>
-                    <span class="input-group-text bg-white" onclick="togglePass()" style="cursor:pointer"><i class="fas fa-eye text-muted" id="eyeIcon"></i></span>
+                    <div class="input-group mb-4">
+                        <div class="form-floating flex-grow-1">
+                            <input type="password" class="form-control" id="password" placeholder="Password" required>
+                            <label>Password</label>
+                        </div>
+                        <span class="input-group-text bg-white border-start-0" onclick="togglePass('password', this)" style="cursor:pointer"><i class="fas fa-eye text-muted"></i></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-3 fw-bold">MASUK</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-dashboard" class="d-flex hidden">
+        <div class="sidebar d-flex flex-column p-3" style="width: 260px; position: fixed;">
+            <div class="d-flex align-items-center mb-4 px-2 mt-2">
+                <i class="fas fa-layer-group fa-lg me-2 text-warning"></i>
+                <h5 class="fw-bold m-0">CBT PRO</h5>
+            </div>
+            <ul class="nav flex-column mb-auto">
+                <li class="nav-item">
+                    <a onclick="switchMenu('menu-ujian')" class="nav-link active" id="link-ujian"><i class="fas fa-book me-2"></i> Bank Soal</a>
+                </li>
+                <li class="nav-item" id="nav-users">
+                    <a onclick="switchMenu('menu-users')" class="nav-link"><i class="fas fa-users me-2"></i> Data Siswa</a>
+                </li>
+                <li class="nav-item" id="nav-nilai">
+                    <a onclick="loadNilai()" class="nav-link"><i class="fas fa-poll me-2"></i> Hasil Nilai</a>
+                </li>
+            </ul>
+            <div class="mt-auto">
+                <div class="p-3 bg-white bg-opacity-10 rounded mb-2">
+                    <small class="d-block text-white-50">Login sebagai:</small>
+                    <strong class="d-block" id="adminName">User</strong>
+                    <span class="badge bg-warning text-dark" id="roleBadge">Role</span>
                 </div>
-                <button type="submit" class="btn btn-primary w-100 py-3 rounded-3 fw-bold shadow-sm">MASUK SEKARANG</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="view-dashboard" class="container py-4 hidden">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h5 class="fw-bold m-0" id="welcomeName">Halo, Siswa</h5>
-                <small class="text-muted">Selamat mengerjakan</small>
+                <button onclick="logout()" class="btn btn-danger w-100"><i class="fas fa-sign-out-alt me-2"></i> Keluar</button>
             </div>
-            <button onclick="logout()" class="btn btn-sm btn-outline-danger px-3">Keluar</button>
-        </div>
-        
-        <h6 class="text-secondary fw-bold mb-3 small uppercase ls-1">DAFTAR UJIAN</h6>
-        <div class="row g-3" id="listMapel"></div>
-    </div>
-
-    <div id="view-ujian" class="hidden">
-        <div class="sticky-timer d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2">
-                <i class="far fa-clock text-danger"></i>
-                <span class="fw-bold text-danger fs-5" id="timer">00:00</span>
-            </div>
-            <span class="badge bg-primary px-3 py-2 rounded-pill">No. <span id="no-soal">1</span></span>
         </div>
 
-        <div class="container mt-3">
-            <div class="card card-custom p-4 mb-3">
-                <div class="fs-5 lh-base" id="soal-content">Loading...</div>
-            </div>
-            <div id="opsi-container"></div>
-        </div>
-
-        <div class="mobile-nav">
-            <button class="btn btn-light border px-3" onclick="nav(-1)"><i class="fas fa-chevron-left"></i></button>
-            <button class="btn btn-warning flex-grow-1 fw-bold text-white shadow-sm" onclick="openNavModal()">
-                <i class="fas fa-th me-2"></i> DAFTAR SOAL
-            </button>
-            <button class="btn btn-light border px-3" onclick="nav(1)"><i class="fas fa-chevron-right"></i></button>
-            <button class="btn btn-success px-3 fw-bold" onclick="konfirmasiSelesai()"><i class="fas fa-paper-plane"></i></button>
-        </div>
-    </div>
-
-    <div class="modal fade" id="modalNav" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content rounded-4 border-0">
-                <div class="modal-header border-0 pb-0"><h5 class="fw-bold">Navigasi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <div class="d-flex flex-wrap gap-2 justify-content-center" id="grid-nomor"></div>
+        <div class="flex-grow-1 p-4" style="margin-left: 260px;">
+            
+            <div id="menu-ujian" class="content-section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div><h3 class="fw-bold m-0">Manajemen Ujian</h3><p class="text-muted m-0">Input soal dan atur status ujian</p></div>
+                    <button onclick="tambahMapel()" class="btn btn-primary fw-bold" id="btnAddMapel"><i class="fas fa-plus me-2"></i> Buat Baru</button>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button class="btn btn-primary w-100 fw-bold py-3 rounded-3" onclick="konfirmasiSelesai()">SELESAI & KIRIM</button>
+                
+                <div class="row g-4 mb-5" id="gridMapel"></div>
+                
+                <div class="card card-dash p-4">
+                    <h5 class="fw-bold border-bottom pb-3 mb-3"><i class="fas fa-edit me-2"></i>Input Soal Baru</h5>
+                    <div id="formSoalContainer"></div>
                 </div>
             </div>
+
+            <div id="menu-users" class="content-section hidden">
+                <h3 class="fw-bold mb-4">Database Siswa</h3>
+                <div class="card card-dash p-4">
+                    <div class="row align-items-end">
+                        <div class="col-md-9">
+                            <label class="form-label fw-bold">Import User (Excel)</label>
+                            <input type="file" id="fileExcel" class="form-control" accept=".xlsx">
+                        </div>
+                        <div class="col-md-3">
+                            <button onclick="handleImport()" class="btn btn-success w-100 fw-bold"><i class="fas fa-file-upload me-2"></i> UPLOAD</button>
+                        </div>
+                    </div>
+                    <hr>
+                    <button onclick="downloadTemplate()" class="btn btn-outline-primary btn-sm"><i class="fas fa-download me-1"></i> Template Excel</button>
+                </div>
+            </div>
+
+            <div id="menu-nilai" class="content-section hidden">
+                <div class="d-flex flex-wrap justify-content-between align-items-end mb-4 gap-3">
+                    <div>
+                        <h3 class="fw-bold m-0">Rekap Nilai</h3>
+                        <p class="text-muted m-0">Pantau dan reset hasil ujian</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button onclick="hapusNilaiTerpilih()" class="btn btn-danger"><i class="fas fa-trash-alt me-2"></i> Reset Terpilih</button>
+                        <button onclick="exportNilai()" class="btn btn-success"><i class="fas fa-file-excel me-2"></i> Export Excel</button>
+                    </div>
+                </div>
+
+                <div class="card card-dash p-3 mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Cari Nama Siswa, Kelas, atau Mapel..." onkeyup="filterNilai()">
+                    </div>
+                </div>
+
+                <div class="card card-dash p-0 overflow-hidden">
+                    <table class="table table-hover align-middle mb-0" id="tableNilai">
+                        <thead class="bg-light">
+                            <tr>
+                                <th width="5%" class="text-center"><input type="checkbox" onchange="toggleAllCheck(this)"></th>
+                                <th>Waktu</th>
+                                <th>Nama</th>
+                                <th>Kelas</th>
+                                <th>Mapel</th>
+                                <th>Skor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyNilai"></tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
+
+    <template id="tplSoal">
+        <form onsubmit="simpanSoal(event)">
+            <div class="row mb-3">
+                <div class="col-md-8"><select id="pelajaran_id" class="form-select fw-bold border-primary" required></select></div>
+                <div class="col-md-4"><select id="kunci" class="form-select bg-warning-subtle fw-bold" required><option value="" disabled selected>Pilih Kunci...</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-light fw-bold">SOAL</span>
+                <textarea id="q" class="form-control" rows="3" required></textarea>
+                <button type="button" class="btn btn-secondary" onclick="uploadImg('q')"><i class="fas fa-image"></i></button>
+            </div>
+            <div id="prev_q" class="mb-2"></div>
+            <div class="row g-2">
+                <div class="col-md-6"><div class="input-group"><span class="input-group-text">A</span><input id="a" class="form-control" required><button type="button" class="btn btn-light border" onclick="uploadImg('a')"><i class="fas fa-image"></i></button></div><div id="prev_a"></div></div>
+                <div class="col-md-6"><div class="input-group"><span class="input-group-text">B</span><input id="b" class="form-control" required><button type="button" class="btn btn-light border" onclick="uploadImg('b')"><i class="fas fa-image"></i></button></div><div id="prev_b"></div></div>
+                <div class="col-md-6"><div class="input-group"><span class="input-group-text">C</span><input id="c" class="form-control" required><button type="button" class="btn btn-light border" onclick="uploadImg('c')"><i class="fas fa-image"></i></button></div><div id="prev_c"></div></div>
+                <div class="col-md-6"><div class="input-group"><span class="input-group-text">D</span><input id="d" class="form-control" required><button type="button" class="btn btn-light border" onclick="uploadImg('d')"><i class="fas fa-image"></i></button></div><div id="prev_d"></div></div>
+            </div>
+            <button class="btn btn-primary w-100 mt-4 fw-bold"><i class="fas fa-save me-2"></i> SIMPAN SOAL</button>
+        </form>
+        <input type="file" id="hiddenFile" style="display:none" onchange="processFile(this)">
+    </template>
 
     <script>
-        // --- KONFIGURASI SUPABASE ---
         const SUPABASE_URL = 'https://mbkuwbcjniidcyinqwoe.supabase.co'; 
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ia3V3YmNqbmlpZGN5aW5xd29lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyMzYxOTYsImV4cCI6MjA4NjgxMjE5Nn0.56imEwwShJx8BXPM-MR4-OiHz-q-rQYrlXh0TcohX9Y';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let activeUpload = null; let currentUser = null;
 
-        let state = { user: null, mapel: null, soal: [], jawaban: {}, durasi: 0, timer: null };
-        let currIdx = 0, violations = 0, navModal;
-
-        // --- AUTH & SESSION ---
-        window.onload = () => {
-            navModal = new bootstrap.Modal(document.getElementById('modalNav'));
-            const s = localStorage.getItem('siswa_session');
-            if(s) { 
-                state.user = JSON.parse(s); 
-                enterDashboard(); 
-            }
-        };
-
-        function togglePass() {
-            const x = document.getElementById('password');
-            const i = document.getElementById('eyeIcon');
-            if(x.type==='password'){ x.type='text'; i.className='fas fa-eye-slash text-primary'; }
-            else{ x.type='password'; i.className='fas fa-eye text-muted'; }
-        }
-
+        // AUTH
         document.getElementById('formLogin').addEventListener('submit', async(e)=>{
             e.preventDefault();
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
+            const { data, error } = await db.from('users').select('*').eq('username', u).eq('password', p).single();
             
-            // Login Logic
-            const { data, error } = await db.from('users').select('*').eq('username', u).eq('password', p).maybeSingle();
-            
-            if(error) {
-                console.error("DB Error:", error);
-                Swal.fire('Error', 'Masalah koneksi database', 'error');
-            } else if(data && data.role === 'siswa') {
-                state.user = data;
-                localStorage.setItem('siswa_session', JSON.stringify(data));
-                enterDashboard();
-            } else {
-                Swal.fire('Gagal', 'Username/Password salah atau bukan akun siswa.', 'error');
-            }
+            if(data && (data.role === 'admin' || data.role === 'guru')) {
+                localStorage.setItem('admin_session', JSON.stringify(data));
+                location.reload();
+            } else Swal.fire('Gagal', 'Akses ditolak. Cek Username/Password.', 'error');
         });
 
-        function enterDashboard() {
-            document.getElementById('welcomeName').innerText = state.user.nama;
-            switchView('view-dashboard');
-            loadMapel();
-        }
-        function logout() { localStorage.removeItem('siswa_session'); location.reload(); }
-        function switchView(id) {
-            ['view-login','view-dashboard','view-ujian'].forEach(v => document.getElementById(v).classList.add('hidden'));
+        window.onload = () => {
+            const sess = localStorage.getItem('admin_session');
+            if(sess) {
+                currentUser = JSON.parse(sess);
+                document.getElementById('view-login').classList.add('hidden');
+                document.getElementById('view-dashboard').classList.remove('hidden');
+                document.getElementById('adminName').innerText = currentUser.nama;
+                document.getElementById('roleBadge').innerText = currentUser.role.toUpperCase();
+                
+                if (currentUser.role === 'guru') {
+                    document.getElementById('nav-users').style.display = 'none'; 
+                    document.getElementById('nav-nilai').style.display = 'none'; 
+                    document.getElementById('btnAddMapel').style.display = 'none';
+                }
+
+                document.getElementById('formSoalContainer').appendChild(document.getElementById('tplSoal').content.cloneNode(true));
+                refreshMapel();
+            }
+        };
+
+        function logout() { localStorage.removeItem('admin_session'); location.reload(); }
+        function togglePass(id, el) { const i = document.getElementById(id); if(i.type==='password'){i.type='text'; el.innerHTML='<i class="fas fa-eye-slash text-primary"></i>';}else{i.type='password'; el.innerHTML='<i class="fas fa-eye text-muted"></i>';} }
+        function switchMenu(id) {
+            document.querySelectorAll('.content-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
             document.getElementById(id).classList.remove('hidden');
+            if (currentUser.role === 'guru' && (id === 'menu-users' || id === 'menu-nilai')) return;
+            if (id === 'menu-ujian') document.getElementById('link-ujian').classList.add('active');
         }
 
-        // --- LOAD MAPEL (LOGIKA NONAKTIFKAN MAPEL SELESAI) ---
-        async function loadMapel() {
-            const list = document.getElementById('listMapel');
-            list.innerHTML = '<div class="text-center w-100 p-4"><div class="spinner-border text-primary"></div></div>';
-            
-            try {
-                // 1. Ambil Ujian Aktif
-                const { data: exams, error: errExam } = await db.from('exams').select('*').eq('status', 'Aktif');
-                if(errExam) throw errExam;
-
-                // 2. Ambil Riwayat Pengerjaan Siswa Ini
-                const { data: results, error: errRes } = await db.from('results')
-                    .select('exam_id')
-                    .eq('username_siswa', state.user.username);
+        // MAPEL & SOAL
+        async function refreshMapel() {
+            const { data } = await db.from('exams')
+                .select('*, questions(count)')
+                .order('created_at', {ascending:false});
                 
-                if(errRes) throw errRes;
+            const grid = document.getElementById('gridMapel');
+            const sel = document.getElementById('pelajaran_id');
+            grid.innerHTML = '';
+            if(sel) sel.innerHTML = '<option value="" disabled selected>Pilih Mapel...</option>';
 
-                // Buat Set ID yang sudah selesai
-                const doneIds = new Set(results ? results.map(r => r.exam_id) : []);
+            data?.forEach(m => {
+                if(sel) sel.innerHTML += `<option value="${m.id}">${m.nama}</option>`;
+                const statusCls = m.status === 'Aktif' ? 'bg-success' : 'bg-secondary';
+                const jumlahSoal = m.questions[0] ? m.questions[0].count : 0;
+                const actionButtons = currentUser.role === 'admin' ? 
+                    `<button onclick="toggleStatus('${m.id}', '${m.status}')" class="btn btn-outline-primary btn-sm w-100 fw-bold mt-2">${m.status === 'Aktif' ? 'NONAKTIFKAN' : 'AKTIFKAN'}</button>` : '';
+                const deleteButton = currentUser.role === 'admin' ?
+                    `<button onclick="delMapel('${m.id}')" class="btn btn-sm text-danger"><i class="fas fa-trash"></i></button>` : '';
 
-                list.innerHTML = '';
-                if(exams && exams.length > 0) {
-                    exams.forEach(m => {
-                        const isDone = doneIds.has(m.id);
-                        
-                        let actionBtn = '';
-                        if (isDone) {
-                            actionBtn = `<button class="btn btn-secondary w-100 rounded-pill py-2" disabled style="opacity:0.7">
-                                <i class="fas fa-check-circle me-1"></i> SUDAH SELESAI
-                            </button>`;
-                        } else {
-                            actionBtn = `<button class="btn btn-primary w-100 fw-bold rounded-pill py-2 shadow-sm" 
-                                onclick="askToken('${m.id}', '${m.nama}', ${m.durasi}, '${m.token}', ${m.acak_soal}, ${m.acak_opsi})">
-                                KERJAKAN <i class="fas fa-arrow-right ms-1"></i>
-                            </button>`;
-                        }
-
-                        list.innerHTML += `
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card card-custom p-4 h-100 border ${isDone ? 'bg-light' : ''}">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <h5 class="fw-bold mb-1 text-dark">${m.nama}</h5>
-                                    ${isDone ? '<span class="badge bg-success">Done</span>' : '<span class="badge bg-danger">New</span>'}
-                                </div>
-                                <p class="text-muted small mb-4 border-bottom pb-2">
-                                    <i class="far fa-clock me-1"></i> ${m.durasi} Menit
-                                </p>
-                                <div class="mt-auto">
-                                    ${actionBtn}
-                                </div>
-                            </div>
-                        </div>`;
-                    });
-                } else {
-                    list.innerHTML = '<div class="alert alert-info w-100 text-center">Belum ada ujian yang aktif.</div>';
-                }
-            } catch (err) {
-                console.error(err);
-                list.innerHTML = '<div class="alert alert-danger">Gagal memuat data. Cek koneksi.</div>';
-            }
-        }
-
-        async function askToken(id, nama, durasi, tokenAsli, acakS, acakO) {
-            const { value: t } = await Swal.fire({ 
-                title: 'Masukkan Token', 
-                input: 'text', 
-                inputPlaceholder: 'Kode Token...',
-                confirmButtonText:'Mulai Ujian', 
-                showCancelButton:true 
-            });
-            
-            if(t && t.toUpperCase().trim() === tokenAsli) {
-                startExam(id, nama, durasi, acakS, acakO);
-            } else if(t) {
-                Swal.fire('Token Salah', 'Silakan minta token ke pengawas.', 'error');
-            }
-        }
-
-        async function startExam(id, nama, durasi, acakS, acakO) {
-            Swal.fire({title: 'Memuat Soal...', didOpen: ()=>Swal.showLoading()});
-            const { data, error } = await db.from('questions').select('*').eq('exam_id', id);
-            
-            if(error) {
-                Swal.fire('Error', 'Gagal ambil soal', 'error');
-                return;
-            }
-
-            if(data && data.length > 0) {
-                state.mapel = { id, nama, acakO };
-                state.soal = acakS ? data.sort(()=>Math.random()-0.5) : data;
-                state.jawaban = {};
-                state.durasi = durasi * 60;
-                
-                runTimer();
-                renderSoal(0);
-                startSecurity(); // Mulai Security
-                switchView('view-ujian');
-                Swal.close();
-            } else {
-                Swal.fire('Kosong', 'Soal belum diinput oleh Admin.', 'warning');
-            }
-        }
-
-        // --- RENDER SOAL (MODIFIKASI: HAPUS HURUF A/B/C/D) ---
-        function renderSoal(idx) {
-            currIdx = idx;
-            const s = state.soal[idx];
-            document.getElementById('no-soal').innerText = idx + 1;
-            document.getElementById('soal-content').innerHTML = s.pertanyaan;
-            
-            let ops = [{k:'A',v:s.opsi_a},{k:'B',v:s.opsi_b},{k:'C',v:s.opsi_c},{k:'D',v:s.opsi_d}];
-            if(state.mapel.acakO) ops = ops.sort(()=>Math.random()-0.5);
-
-            const c = document.getElementById('opsi-container'); c.innerHTML = '';
-            ops.forEach(o => {
-                const act = state.jawaban[s.id] === o.k ? 'active' : '';
-                // DI SINI PERUBAHANNYA: Menghapus <span>[${o.k}]</span>
-                c.innerHTML += `<button class="opsi-btn ${act}" onclick="ans('${s.id}','${o.k}',this)">
-                    ${o.v}
-                </button>`;
+                grid.innerHTML += `
+                <div class="col-md-6 col-xl-4">
+                    <div class="card card-dash p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge ${statusCls}">${m.status}</span>
+                            ${deleteButton}
+                        </div>
+                        <h5 class="fw-bold text-dark">${m.nama}</h5>
+                        <div class="mb-2 d-flex gap-2 text-muted small">
+                            <span><i class="far fa-clock"></i> ${m.durasi}m</span>
+                            <span class="badge bg-light text-dark border token-badge">${m.token}</span>
+                        </div>
+                        <div class="mb-3">
+                            <span class="badge bg-info text-dark"><i class="fas fa-list-ol me-1"></i> ${jumlahSoal} Soal</span>
+                        </div>
+                        ${actionButtons}
+                    </div>
+                </div>`;
             });
         }
 
-        function ans(qid, key, el) { 
-            state.jawaban[qid] = key; 
-            document.querySelectorAll('.opsi-btn').forEach(b => b.classList.remove('active')); 
-            el.classList.add('active'); 
-        }
-
-        function nav(dir) { 
-            const n = currIdx + dir; 
-            if(n >= 0 && n < state.soal.length) renderSoal(n); 
-        }
-
-        function openNavModal() {
-            const g = document.getElementById('grid-nomor'); g.innerHTML='';
-            state.soal.forEach((s, i) => {
-                const cls = state.jawaban[s.id] ? 'btn-nav-number filled' : 'btn-outline-secondary btn-nav-number';
-                g.innerHTML += `<button class="btn ${cls}" onclick="jump(${i})">${i+1}</button>`;
+        async function tambahMapel() {
+            if (currentUser.role !== 'admin') return;
+            const token = Math.random().toString(36).substring(2,7).toUpperCase();
+            const { value: v } = await Swal.fire({
+                title: 'Ujian Baru',
+                html: '<input id="sw-nama" class="swal2-input" placeholder="Nama Mapel"><input id="sw-durasi" type="number" class="swal2-input" placeholder="Durasi (Menit)">' +
+                      `<div class="mt-2 fw-bold text-primary">Token: ${token}</div>` +
+                      '<div class="mt-2 text-start px-5"><input type="checkbox" id="sw-acak-s"> Acak Soal <br> <input type="checkbox" id="sw-acak-o"> Acak Jawaban</div>',
+                focusConfirm: false,
+                preConfirm: () => [document.getElementById('sw-nama').value, document.getElementById('sw-durasi').value, document.getElementById('sw-acak-s').checked, document.getElementById('sw-acak-o').checked]
             });
-            navModal.show();
+            if(v && v[0]) { await db.from('exams').insert({ nama:v[0], durasi:v[1]||60, token:token, acak_soal:v[2], acak_opsi:v[3] }); refreshMapel(); }
         }
-        function jump(i) { navModal.hide(); renderSoal(i); }
-
-        // --- SECURITY SYSTEM ---
-        function startSecurity() {
-            violations = 0;
-            document.addEventListener('visibilitychange', checkSec);
-            window.addEventListener('blur', checkSec);
-        }
-        function stopSecurity() {
-            document.removeEventListener('visibilitychange', checkSec);
-            window.removeEventListener('blur', checkSec);
-        }
-        function checkSec() {
-            if(document.hidden || !document.hasFocus()) {
-                violations++;
-                if(violations >= 3) {
-                    stopSecurity();
-                    submitExam(true); // Force Submit
-                } else {
-                    Swal.fire({
-                        title: 'PERINGATAN!',
-                        html: `Dilarang pindah tab/aplikasi!<br>Pelanggaran: <b>${violations}/3</b>.<br>Jika mencapai 3x, ujian otomatis dikirim.`,
-                        icon: 'warning',
-                        confirmButtonText: 'Lanjut Ujian',
-                        allowOutsideClick: false
-                    });
+        async function toggleStatus(id, s) { await db.from('exams').update({status: s==='Aktif'?'Nonaktif':'Aktif'}).eq('id',id); refreshMapel(); }
+        async function delMapel(id) { if(confirm('Hapus ujian ini?')) { await db.from('exams').delete().eq('id',id); refreshMapel(); } }
+        
+        function uploadImg(id) { activeUpload = id; document.getElementById('hiddenFile').click(); }
+        async function processFile(inp) {
+            if(inp.files[0]) {
+                const f = inp.files[0]; const name = `img_${Date.now()}_${Math.random()}`;
+                Swal.showLoading();
+                const { error } = await db.storage.from('images').upload(name, f);
+                if(!error) {
+                    const { data } = db.storage.from('images').getPublicUrl(name);
+                    document.getElementById(activeUpload).value += `<br><img src="${data.publicUrl}" style="max-height:150px"><br>`;
+                    document.getElementById('prev_'+activeUpload).innerHTML = '<i class="fas fa-check-circle text-success"></i> Gambar terupload';
+                    Swal.close();
                 }
             }
         }
-
-        function runTimer() {
-            state.timer = setInterval(() => {
-                state.durasi--;
-                const m = Math.floor(state.durasi/60); const s = state.durasi%60;
-                document.getElementById('timer').innerText = `${m}:${s<10?'0':''}${s}`;
-                if(state.durasi <= 0) { clearInterval(state.timer); submitExam(true); }
-            }, 1000);
+        async function simpanSoal(e) {
+            e.preventDefault();
+            const p = { exam_id: document.getElementById('pelajaran_id').value, pertanyaan: document.getElementById('q').value, opsi_a: document.getElementById('a').value, opsi_b: document.getElementById('b').value, opsi_c: document.getElementById('c').value, opsi_d: document.getElementById('d').value, kunci: document.getElementById('kunci').value };
+            const { error } = await db.from('questions').insert(p);
+            if(!error) { Swal.fire({icon:'success', title:'Tersimpan', timer:1000, showConfirmButton:false}); ['q','a','b','c','d'].forEach(id=>{ document.getElementById(id).value=''; document.getElementById('prev_'+id).innerHTML=''; }); refreshMapel(); }
         }
 
-        function konfirmasiSelesai() {
-            const total = state.soal.length;
-            const filled = Object.keys(state.jawaban).length;
-            
-            Swal.fire({ 
-                title: 'Kirim Jawaban?', 
-                html: `Anda sudah menjawab <b>${filled}</b> dari <b>${total}</b> soal.<br>Yakin ingin mengirim?`, 
-                icon: 'question', 
-                showCancelButton:true, 
-                confirmButtonText:'Ya, Kirim',
-                confirmButtonColor: '#198754'
-            }).then(r => { if(r.isConfirmed) submitExam(false); });
-        }
-
-        // --- SUBMIT LOGIC ---
-        async function submitExam(force) {
-            clearInterval(state.timer);
-            stopSecurity();
-            if(navModal) navModal.hide();
-            
-            Swal.fire({
-                title: force ? 'WAKTU HABIS / DISKUALIFIKASI' : 'Mengirim Jawaban...',
-                text: 'Mohon tunggu sebentar...',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
+        // NILAI & FILTER SEARCH
+        async function loadNilai() {
+            switchMenu('menu-nilai');
+            const { data } = await db.from('results').select('*').order('submitted_at', {ascending:false});
+            const tb = document.getElementById('tbodyNilai'); tb.innerHTML = '';
+            data.forEach(d => {
+                tb.innerHTML += `<tr><td class="text-center"><input type="checkbox" class="chk-nilai" value="${d.id}"></td><td><small>${new Date(d.submitted_at).toLocaleString()}</small></td><td class="fw-bold">${d.nama_siswa}</td><td>${d.kelas_siswa || '-'}</td><td>${d.mapel_nama}</td><td><span class="badge bg-primary fs-6">${d.skor}</span></td></tr>`;
             });
-
-            const payload = {
-                p_username_siswa: state.user.username,
-                p_nama_siswa: state.user.nama,
-                p_kelas_siswa: state.user.kelas || '-',
-                p_exam_id: state.mapel.id,
-                p_jawaban: state.jawaban
-            };
-
-            try {
-                const { data, error } = await db.rpc('submit_ujian', payload);
-
-                if(error) {
-                    console.error("RPC Error:", error);
-                    throw error;
-                }
-
-                if(data.status === 'error') {
-                    Swal.fire('Info', data.message, 'warning').then(() => location.reload());
-                } else {
-                    Swal.fire({
-                        title: 'UJIAN SELESAI!',
-                        html: `Nilai Anda:<br><h1 class="text-primary display-3 fw-bold">${Math.round(data.skor)}</h1>`,
-                        icon: 'success',
-                        allowOutsideClick: false,
-                        confirmButtonText: 'Kembali ke Dashboard'
-                    }).then(() => {
-                        location.reload(); 
-                    });
-                }
-            } catch (err) {
-                Swal.fire({
-                    title: 'Gagal Mengirim',
-                    text: 'Koneksi terputus atau terjadi kesalahan server. Coba kirim lagi?',
-                    icon: 'error',
-                    showCancelButton: true,
-                    confirmButtonText: 'Coba Lagi'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        submitExam(force);
-                    }
-                });
-            }
         }
+        
+        function filterNilai() {
+            const filter = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#tbodyNilai tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(filter) ? '' : 'none';
+            });
+        }
+
+        function toggleAllCheck(el) { document.querySelectorAll('.chk-nilai').forEach(c => c.checked = el.checked); }
+        async function hapusNilaiTerpilih() {
+            const ids = Array.from(document.querySelectorAll('.chk-nilai:checked')).map(c => c.value);
+            if(ids.length > 0 && confirm(`Reset ${ids.length} data nilai?`)) { for(let id of ids) await db.from('results').delete().eq('id', id); loadNilai(); Swal.fire('Sukses', 'Data direset', 'success'); }
+        }
+        function downloadTemplate() { const ws = XLSX.utils.aoa_to_sheet([["username","password","role","nama","kelas"],["siswa1","123","siswa","Budi","12A"]]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sheet1"); XLSX.writeFile(wb, "Template_Siswa.xlsx"); }
+        async function handleImport() {
+            const f = document.getElementById('fileExcel').files[0]; if(!f) return;
+            const r = new FileReader(); r.onload = async(e) => {
+                const d = XLSX.utils.sheet_to_json(XLSX.read(e.target.result, {type:'array'}).Sheets['Sheet1']);
+                let c=0; for(let u of d) { const {error} = await db.from('users').insert({username:u.username, password:u.password, role:u.role, nama:u.nama, kelas:u.kelas}); if(!error) c++; }
+                Swal.fire('Import Selesai', `${c} data masuk`, 'success');
+            }; r.readAsArrayBuffer(f);
+        }
+        function exportNilai() { XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById('tableNilai')), 'Rekap_Nilai.xlsx'); }
     </script>
 </body>
 </html>
