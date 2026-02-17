@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ujian CBT Online</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
@@ -115,6 +119,7 @@
 
     <script>
         // --- KONFIGURASI SUPABASE ---
+        // Ganti dengan URL dan KEY Supabase Anda yang benar dari file admin.html
         const SUPABASE_URL = 'https://mbkuwbcjniidcyinqwoe.supabase.co'; 
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ia3V3YmNqbmlpZGN5aW5xd29lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyMzYxOTYsImV4cCI6MjA4NjgxMjE5Nn0.56imEwwShJx8BXPM-MR4-OiHz-q-rQYrlXh0TcohX9Y';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -124,7 +129,9 @@
 
         // --- AUTH & SESSION ---
         window.onload = () => {
+            // Inisialisasi Modal Bootstrap
             navModal = new bootstrap.Modal(document.getElementById('modalNav'));
+            
             const s = localStorage.getItem('siswa_session');
             if(s) { 
                 state.user = JSON.parse(s); 
@@ -170,7 +177,7 @@
             document.getElementById(id).classList.remove('hidden');
         }
 
-        // --- LOAD MAPEL (LOGIKA NONAKTIFKAN MAPEL SELESAI) ---
+        // --- LOAD MAPEL ---
         async function loadMapel() {
             const list = document.getElementById('listMapel');
             list.innerHTML = '<div class="text-center w-100 p-4"><div class="spinner-border text-primary"></div></div>';
@@ -265,7 +272,7 @@
                 
                 runTimer();
                 renderSoal(0);
-                startSecurity(); // Mulai Security
+                startSecurity();
                 switchView('view-ujian');
                 Swal.close();
             } else {
@@ -273,7 +280,7 @@
             }
         }
 
-        // --- RENDER SOAL (MODIFIKASI: HAPUS HURUF A/B/C/D) ---
+        // --- RENDER SOAL ---
         function renderSoal(idx) {
             currIdx = idx;
             const s = state.soal[idx];
@@ -286,7 +293,6 @@
             const c = document.getElementById('opsi-container'); c.innerHTML = '';
             ops.forEach(o => {
                 const act = state.jawaban[s.id] === o.k ? 'active' : '';
-                // DI SINI PERUBAHANNYA: Menghapus <span>[${o.k}]</span>
                 c.innerHTML += `<button class="opsi-btn ${act}" onclick="ans('${s.id}','${o.k}',this)">
                     ${o.v}
                 </button>`;
@@ -329,7 +335,7 @@
                 violations++;
                 if(violations >= 3) {
                     stopSecurity();
-                    submitExam(true); // Force Submit
+                    submitExam(true);
                 } else {
                     Swal.fire({
                         title: 'PERINGATAN!',
